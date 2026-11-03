@@ -31,11 +31,11 @@ def get_value(soup, element_id):
 
 def test_single_id(session, category_code, category_name, student_id):
   """Fetches a fresh form (Viewstate & Captcha) and tests a single ID."""
-  max_retries = 3
+  max_retries = 2
   for attempt in range(max_retries):
     try:
       # GET fresh form
-      response = session.get(URL, timeout=10)
+      response = session.get(URL, timeout=5)
       response.raise_for_status()
 
       soup = BeautifulSoup(response.text, "html.parser")
@@ -58,7 +58,7 @@ def test_single_id(session, category_code, category_name, student_id):
 
       # Submit result query
       result = session.post(
-          URL, data=payload, headers={"Referer": URL}, timeout=10
+          URL, data=payload, headers={"Referer": URL}, timeout=5
       )
       result.raise_for_status()
 
@@ -86,12 +86,17 @@ def test_single_id(session, category_code, category_name, student_id):
             "faculty": faculty_name,
         }
 
-      return False  # Checked, but invalid ID
+      return False
 
-    except (requests.RequestException, Exception):
+    except requests.RequestException as e:
       if attempt == max_retries - 1:
+        # Diagnostic: Prints connection errors so you can see why it's failing
+        print(f"[CONNECTION ERROR on ID {student_id}]: {e}")
         return None
-      time.sleep(1)  # Brief backoff before retry
+      time.sleep(0.5)
+    except Exception as e:
+      print(f"[ERROR on ID {student_id}]: {e}")
+      return None
 
   return None
 
@@ -105,23 +110,20 @@ def worker_scan_chunk(chunk_id, start_id, end_id):
   )
 
   for student_id in range(start_id, end_id + 1):
-    # Optional progress log every 500 IDs per thread
+    # Log progress every 500 IDs per thread
     if student_id % 500 == 0:
       print(f"[Thread-{chunk_id}] Progress: checked up to ID {student_id}")
 
     for cat_code, cat_name in CATEGORIES.items():
       result = test_single_id(session, cat_code, cat_name, student_id)
       if result is True:
-        # Invalid ID, move to next category or ID
         continue
       elif result and isinstance(result, dict):
-        # Valid student found!
         print(
             f"\n[FOUND!] ID: {student_id} | Category: {cat_name} | Name:"
             f" {result['student_name']}\n"
         )
         local_found.append(result)
-        # Once a valid record is found for this ID in a category, we can break or continue
 
   print(f"[Thread-{chunk_id}] Completed range {start_id} to {end_id}.")
   return local_found
@@ -132,6 +134,7 @@ def main():
   print("Starting Multi-Threaded Admission ID Scanner")
   print(f"Range: {RANGE_START} to {RANGE_END}")
   print(f"Threads: {MAX_WORKERS}")
+  print(f"Target URL: {URL}")
   print("=" * 60)
 
   # Partition the ID range evenly across MAX_WORKERS threads
