@@ -10,7 +10,7 @@ URL = os.getenv("TARGET_URL", "https://daleel.admission.gov.sd/result2026/Result
 
 # ID Range configuration (8-digit IDs from 20000000 to 21000000)
 RANGE_START = 20000000
-RANGE_END = 21000000
+RANGE_END = 20100000
 
 # Number of concurrent worker threads
 MAX_WORKERS = 6
