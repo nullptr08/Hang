@@ -6,7 +6,7 @@ on:
       target_url:
         description: 'Target URL for the result page'
         required: false
-        default: 'https://localhost:0000/result2026/Result_2026.aspx'
+        default: 'https://daleel.admission.gov.sd/result2026/Result_2026.aspx'
 
 jobs:
   run-scanner:
